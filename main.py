@@ -57,7 +57,9 @@ def main():
                     "route": apps_row[5],
                     "transporter": apps_row[10],
                     "transporter_sum": apps_row[8],
-                    "nds": apps_row[9]
+                    "nds": apps_row[9],
+                    "manager": apps_row[11],
+                    "full_paid": apps_row[6] == payment_row[17]
                 })
 
     result_wb = Workbook()
@@ -71,8 +73,9 @@ def main():
     result_ws["F1"] = "Перевозчик"
     result_ws["G1"] = "Ставка перевозчика"
     result_ws["H1"] = "НДС"
-    result_ws["I1"] = "Премия (10%)"
-    result_ws["J1"] = "Премия (30%)"
+    result_ws["I1"] = "Менеджер"
+    result_ws["J1"] = "Премия (10%)"
+    result_ws["K1"] = "Премия (30%)"
 
     for record_idx, record in enumerate(result_list, start=2):
         result_ws[f"A{record_idx}"] = record["app_number"]
@@ -82,18 +85,23 @@ def main():
         result_ws[f"E{record_idx}"] = record["route"]
         result_ws[f"F{record_idx}"] = record["transporter"]
         result_ws[f"G{record_idx}"] = record["transporter_sum"]
+        result_ws[f"I{record_idx}"] = record["manager"]
 
         if "не облагается" in record["nds"]:
             result_ws[f"H{record_idx}"] = "без НДС"
-            result_ws[f"I{record_idx}"] = (record["customer_payment_sum"] - record["transporter_sum"]) * 0.1
-            result_ws[f"J{record_idx}"] = (record["customer_payment_sum"] / 1.2 - record["transporter_sum"]) * 0.3
+
+            if record["full_paid"]:
+                result_ws[f"J{record_idx}"] = (record["customer_payment_sum"] - record["transporter_sum"]) * 0.1
+                result_ws[f"K{record_idx}"] = (record["customer_payment_sum"] / 1.2 - record["transporter_sum"]) * 0.3
+            else:
+                result_ws[f"L{record_idx}"] = "Частичная оплата"
 
     for row_idx, row in enumerate(result_ws, start=2):
-        if result_ws[f"i{row_idx}"].value:
-            if result_ws[f"I{row_idx}"].value > result_ws[f"J{row_idx}"].value:
-                result_ws[f"I{row_idx}"].fill = PatternFill("solid", fgColor="0000FF00")
-            else:
+        if result_ws[f"J{row_idx}"].value:
+            if result_ws[f"J{row_idx}"].value > result_ws[f"K{row_idx}"].value:
                 result_ws[f"J{row_idx}"].fill = PatternFill("solid", fgColor="0000FF00")
+            elif result_ws[f"J{row_idx}"].value < result_ws[f"K{row_idx}"].value:
+                result_ws[f"K{row_idx}"].fill = PatternFill("solid", fgColor="0000FF00")
 
         for cell in row:
             cell.font = Font("Arial", 8)
@@ -112,6 +120,7 @@ def main():
     result_ws.column_dimensions["E"].width = 40
     result_ws.column_dimensions["F"].width = 40
     result_ws.column_dimensions["G"].width = 16
+    result_ws.column_dimensions["I"].width = 30
 
     result_wb.save("./result.xlsx")
 
